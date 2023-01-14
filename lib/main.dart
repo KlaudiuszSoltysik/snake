@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:swipe/swipe.dart';
@@ -33,12 +32,13 @@ class _GameState extends State<Game> {
     [6, 5],
     [7, 5]
   ];
-  List<Container> grid = List.filled(121, Container());
+  List<Container> grid = [];
   Timer? timer;
 
   @override
   void initState() {
     Timer.periodic(Duration(seconds: 1), (Timer t) => gameTick());
+    gameTick();
     super.initState();
   }
 
@@ -49,14 +49,50 @@ class _GameState extends State<Game> {
   }
 
   void gameTick() {
-    for (List<int> pair in snake) {
-      setState(
-        () {
-          pair[0]--;
-        },
-      );
-    }
+    grid = [];
+
+    setState(() {
+      for (List<int> pair in snake) {
+        pair[0]--;
+      }
+
+      for (int i = 0; i < 121; i++) {
+        int row = (i / 11).floor();
+        int col = i % 11;
+
+        for (List<int> pair in snake) {
+          int snakeRow = pair[0];
+          int snakeCol = pair[1];
+
+          if ((snakeRow == row) && (snakeCol == col)) {
+            grid.add(Container(
+              decoration: BoxDecoration(
+                color: Colors.greenAccent,
+                border: Border.all(color: Color(0xFF383434), width: 2),
+              ),
+            ));
+            break;
+          }
+        }
+
+        if (!grid.asMap().containsKey(i)) {
+          grid.add(Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.greenAccent, width: 2),
+            ),
+          ));
+        }
+      }
+    });
   }
+
+  // else {
+  // grid.add(Container(
+  // decoration: BoxDecoration(
+  // border: Border.all(color: Colors.greenAccent, width: 2),
+  // ),
+  // ));
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -70,31 +106,6 @@ class _GameState extends State<Game> {
       signal = Icons.arrow_upward_sharp;
     } else {
       signal = Icons.arrow_downward_sharp;
-    }
-
-    for (int i = 0; i < 121; i++) {
-      for (List<int> pair in snake) {
-        int snakeRow = pair[0];
-        int snakeCol = pair[1];
-        int row = (i / 11).floor();
-        int col = i % 11;
-
-        if ((snakeRow == row) && (snakeCol == col)) {
-          grid[i] = Container(
-            decoration: BoxDecoration(
-              color: Colors.greenAccent,
-              border: Border.all(color: Color(0xFF383434), width: 2),
-            ),
-          );
-          break;
-        } else {
-          grid[i] = Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.greenAccent, width: 2),
-            ),
-          );
-        }
-      }
     }
 
     return Scaffold(
