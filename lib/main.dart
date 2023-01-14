@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:swipe/swipe.dart';
@@ -25,74 +27,192 @@ class Game extends StatefulWidget {
 
 class _GameState extends State<Game> {
   String indicator = 'up';
+  late String turn;
   int points = 0;
-  IconData signal = Icons.arrow_upward_sharp;
+  late IconData signal;
+  Color color = Colors.greenAccent;
+  List<Container> grid = [];
   List<List<int>> snake = [
     [5, 5],
-    [6, 5],
-    [7, 5]
+    [5, 6],
+    [5, 7]
   ];
-  List<Container> grid = [];
-  Timer? timer;
+  late int appleX;
+  late int appleY;
+  bool gameOver = false;
+  final random = Random();
 
   @override
   void initState() {
     Timer.periodic(Duration(seconds: 1), (Timer t) => gameTick());
-    gameTick();
+    for (int i = 0; i < 121; i++) {
+      grid.add(Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: color, width: 2),
+        ),
+      ));
+    }
+    randomizeApple();
     super.initState();
   }
 
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
+  void randomizeApple() {
+    int randomX = random.nextInt(11);
+    int randomY = random.nextInt(11);
+
+    for (List<int> pair in snake) {
+      while (randomX == pair[0]) {
+        randomX = random.nextInt(11);
+      }
+      appleX = randomX;
+
+      while (randomY == pair[1]) {
+        randomY = random.nextInt(11);
+      }
+      appleY = randomY;
+    }
   }
 
   void gameTick() {
-    grid = [];
-
     setState(() {
-      for (List<int> pair in snake) {
-        pair[0]--;
-      }
+      if (!gameOver) {
+        grid = [];
+        turn = indicator;
 
-      for (int i = 0; i < 121; i++) {
-        int row = (i / 11).floor();
-        int col = i % 11;
+        if (turn == 'left') {
+          List<int> head = snake[0];
 
-        for (List<int> pair in snake) {
-          int snakeRow = pair[0];
-          int snakeCol = pair[1];
+          //SNAKE MOVEMENT AND COLLECTING APPLES
+          if (head[0] - 1 == appleX && head[1] == appleY) {
+            snake.insert(0, [appleX, appleY]);
+            randomizeApple();
+            points++;
+          } else {
+            List<int> tail = snake.last;
+            tail[0] = snake[0][0] - 1;
+            tail[1] = snake[0][1];
+            snake.removeLast();
+            snake.insert(0, tail);
+          }
+        } else if (turn == 'right') {
+          List<int> head = snake[0];
 
-          if ((snakeRow == row) && (snakeCol == col)) {
-            grid.add(Container(
-              decoration: BoxDecoration(
-                color: Colors.greenAccent,
-                border: Border.all(color: Color(0xFF383434), width: 2),
-              ),
-            ));
-            break;
+          if (head[0] + 1 == appleX && head[1] == appleY) {
+            snake.insert(0, [appleX, appleY]);
+            randomizeApple();
+            points++;
+          } else {
+            List<int> tail = snake.last;
+            tail[0] = snake[0][0] + 1;
+            tail[1] = snake[0][1];
+            snake.removeLast();
+            snake.insert(0, tail);
+          }
+        } else if (turn == 'up') {
+          List<int> head = snake[0];
+
+          if (head[0] == appleX && head[1] - 1 == appleY) {
+            snake.insert(0, [appleX, appleY]);
+            randomizeApple();
+            points++;
+          } else {
+            List<int> tail = snake.last;
+            tail[0] = snake[0][0];
+            tail[1] = snake[0][1] - 1;
+            snake.removeLast();
+            snake.insert(0, tail);
+          }
+        } else {
+          List<int> head = snake[0];
+
+          if (head[0] == appleX && head[1] + 1 == appleY) {
+            snake.insert(0, [appleX, appleY]);
+            randomizeApple();
+            points++;
+          } else {
+            List<int> tail = snake.last;
+            tail[0] = snake[0][0];
+            tail[1] = snake[0][1] + 1;
+            snake.removeLast();
+            snake.insert(0, tail);
           }
         }
 
-        if (!grid.asMap().containsKey(i)) {
-          grid.add(Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.greenAccent, width: 2),
-            ),
-          ));
+        //CHANGE COLOR THEME DEPENDING ON SCORE
+        if (points == 10) {
+          color = Colors.tealAccent;
+        } else if (points == 20) {
+          color = Colors.cyanAccent;
+        } else if (points == 30) {
+          color = Colors.blueAccent;
+        } else if (points == 40) {
+          color = Colors.purpleAccent;
+        } else if (points == 50) {
+          color = Colors.pinkAccent;
+        } else if (points == 60) {
+          color = Colors.limeAccent;
+        } else if (points == 70) {
+          color = Colors.purpleAccent;
         }
-      }
+
+        //GENERATE GRID
+        for (int i = 0; i < 121; i++) {
+          int col = i % 11;
+          int row = (i / 11).floor();
+
+          //PLACE SNAKE
+          for (List<int> pair in snake) {
+            int snakeCol = pair[0];
+            int snakeRow = pair[1];
+
+            if ((snakeRow == row) && (snakeCol == col)) {
+              grid.add(Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  border: Border.all(color: Color(0xFF383434), width: 2),
+                ),
+              ));
+              break;
+            }
+          }
+
+          //PLACE APPLE
+          if (col == appleX && row == appleY) {
+            grid.add(Container(
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                border: Border.all(color: color, width: 2),
+              ),
+            ));
+          }
+
+          //FULL EMPTY FIELDS
+          if (!grid.asMap().containsKey(i)) {
+            grid.add(Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: color, width: 2),
+              ),
+            ));
+          }
+        }
+
+        //CHECK IF SNAKE IS CROSSING HIMSELF
+        for (int i = 1; i < snake.length; i++) {
+          if (snake[0][0] == snake[i][0] && snake[0][1] == snake[i][1]) {
+            gameOver = true;
+          }
+        }
+
+        //CHECK IF SNAKE IS OUT OF THE GRID
+        if (snake[0][0] == -1 ||
+            snake[0][0] == 11 ||
+            snake[0][1] == -1 ||
+            snake[0][1] == 11) {
+          gameOver = true;
+        }
+      } else {}
     });
   }
-
-  // else {
-  // grid.add(Container(
-  // decoration: BoxDecoration(
-  // border: Border.all(color: Colors.greenAccent, width: 2),
-  // ),
-  // ));
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -111,31 +231,31 @@ class _GameState extends State<Game> {
     return Scaffold(
       body: SizedBox.expand(
         child: Swipe(
-          onSwipeUp: () {
-            if (indicator != 'down') {
-              setState(() {
-                indicator = 'up';
-              });
-            }
-          },
-          onSwipeDown: () {
-            if (indicator != 'up') {
-              setState(() {
-                indicator = 'down';
-              });
-            }
-          },
           onSwipeLeft: () {
-            if (indicator != 'right') {
+            if (turn != 'right') {
               setState(() {
                 indicator = 'left';
               });
             }
           },
           onSwipeRight: () {
-            if (indicator != 'left') {
+            if (turn != 'left') {
               setState(() {
                 indicator = 'right';
+              });
+            }
+          },
+          onSwipeUp: () {
+            if (turn != 'down') {
+              setState(() {
+                indicator = 'up';
+              });
+            }
+          },
+          onSwipeDown: () {
+            if (turn != 'up') {
+              setState(() {
+                indicator = 'down';
               });
             }
           },
