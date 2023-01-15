@@ -28,7 +28,7 @@ class Game extends StatefulWidget {
 class _GameState extends State<Game> {
   String indicator = 'up';
   late String turn;
-  int points = 0;
+  int points = -1;
   late IconData signal;
   Color color = Colors.greenAccent;
   List<Container> grid = [];
@@ -39,12 +39,15 @@ class _GameState extends State<Game> {
   ];
   late int appleX;
   late int appleY;
+  double speedMultiplayer = 1.1;
   bool gameOver = false;
   final random = Random();
+  Timer? timer;
 
   @override
   void initState() {
-    Timer.periodic(Duration(seconds: 1), (Timer t) => gameTick());
+    timer =
+        Timer.periodic(Duration(milliseconds: 1000), (Timer t) => gameTick());
     for (int i = 0; i < 121; i++) {
       grid.add(Container(
         decoration: BoxDecoration(
@@ -57,20 +60,46 @@ class _GameState extends State<Game> {
   }
 
   void randomizeApple() {
-    int randomX = random.nextInt(11);
-    int randomY = random.nextInt(11);
+    List<List<int>> possible = [];
 
-    for (List<int> pair in snake) {
-      while (randomX == pair[0]) {
-        randomX = random.nextInt(11);
+    for (int i = 0; i < 11; i++) {
+      for (int j = 0; j < 11; j++) {
+        possible.add([i, j]);
       }
-      appleX = randomX;
-
-      while (randomY == pair[1]) {
-        randomY = random.nextInt(11);
-      }
-      appleY = randomY;
     }
+
+    while (true) {
+      int i = random.nextInt(possible.length);
+      int randomX = possible[i][0];
+      int randomY = possible[i][1];
+
+      bool isGood = false;
+
+      for (List<int> pair in snake) {
+        if (pair[0] == randomX && pair[1] == randomY) {
+          possible.removeAt(i);
+          break;
+        }
+        if (pair[0] == snake.last[0] && pair[1] == snake.last[1]) {
+          isGood = true;
+        }
+      }
+
+      if (isGood) {
+        appleX = randomX;
+        appleY = randomY;
+
+        break;
+      }
+    }
+
+    speedMultiplayer -= 0.1;
+    timer?.cancel();
+    timer = Timer.periodic(
+        Duration(milliseconds: (1000 * speedMultiplayer).floor()),
+        (Timer t) => gameTick());
+
+    points++;
   }
 
   void gameTick() {
@@ -86,7 +115,6 @@ class _GameState extends State<Game> {
           if (head[0] - 1 == appleX && head[1] == appleY) {
             snake.insert(0, [appleX, appleY]);
             randomizeApple();
-            points++;
           } else {
             List<int> tail = snake.last;
             tail[0] = snake[0][0] - 1;
@@ -100,7 +128,6 @@ class _GameState extends State<Game> {
           if (head[0] + 1 == appleX && head[1] == appleY) {
             snake.insert(0, [appleX, appleY]);
             randomizeApple();
-            points++;
           } else {
             List<int> tail = snake.last;
             tail[0] = snake[0][0] + 1;
@@ -114,7 +141,6 @@ class _GameState extends State<Game> {
           if (head[0] == appleX && head[1] - 1 == appleY) {
             snake.insert(0, [appleX, appleY]);
             randomizeApple();
-            points++;
           } else {
             List<int> tail = snake.last;
             tail[0] = snake[0][0];
@@ -128,7 +154,6 @@ class _GameState extends State<Game> {
           if (head[0] == appleX && head[1] + 1 == appleY) {
             snake.insert(0, [appleX, appleY]);
             randomizeApple();
-            points++;
           } else {
             List<int> tail = snake.last;
             tail[0] = snake[0][0];
@@ -151,8 +176,6 @@ class _GameState extends State<Game> {
           color = Colors.pinkAccent;
         } else if (points == 60) {
           color = Colors.limeAccent;
-        } else if (points == 70) {
-          color = Colors.purpleAccent;
         }
 
         //GENERATE GRID
