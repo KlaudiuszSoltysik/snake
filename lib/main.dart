@@ -29,7 +29,9 @@ class _GameState extends State<Game> {
   String indicator = 'up';
   late String turn;
   int points = -1;
+  int gridWidth = 11;
   late IconData signal;
+  IconData pauseIcon = Icons.pause;
   Color color = Colors.greenAccent;
   List<Container> grid = [];
   List<List<int>> snake = [
@@ -60,6 +62,7 @@ class _GameState extends State<Game> {
   }
 
   void randomizeApple() {
+    //GENERATE ALL POSSIBLE COORDINATES
     List<List<int>> possible = [];
 
     for (int i = 0; i < 11; i++) {
@@ -68,6 +71,7 @@ class _GameState extends State<Game> {
       }
     }
 
+    //ITERATE THROUGH ALL COORDINATES AND FIND PROPER ONE
     while (true) {
       int i = random.nextInt(possible.length);
       int randomX = possible[i][0];
@@ -93,12 +97,14 @@ class _GameState extends State<Game> {
       }
     }
 
-    speedMultiplayer -= 0.1;
+    //SPEED UP
+    speedMultiplayer -= 0.01;
     timer?.cancel();
     timer = Timer.periodic(
         Duration(milliseconds: (1000 * speedMultiplayer).floor()),
         (Timer t) => gameTick());
 
+    //INCREMENT SCORE
     points++;
   }
 
@@ -233,7 +239,49 @@ class _GameState extends State<Game> {
             snake[0][1] == 11) {
           gameOver = true;
         }
-      } else {}
+      } else {
+        grid = [];
+        grid.add(
+          Container(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Text(
+                  'You lost!',
+                  style: TextStyle(fontSize: 70),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      timer?.cancel();
+                      indicator = 'up';
+                      points = -1;
+                      gridWidth = 11;
+                      pauseIcon = Icons.pause;
+                      color = Colors.greenAccent;
+                      grid = [];
+                      snake = [
+                        [5, 5],
+                        [5, 6],
+                        [5, 7]
+                      ];
+                      speedMultiplayer = 1.1;
+                      gameOver = false;
+                      initState();
+                    });
+                  },
+                  child: Text(
+                    'New game',
+                    style: TextStyle(fontSize: 70, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        gridWidth = 1;
+        signal = Icons.dangerous;
+      }
     });
   }
 
@@ -252,6 +300,34 @@ class _GameState extends State<Game> {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          'Snake',
+          style: TextStyle(fontSize: 35),
+        ),
+        leading: IconButton(
+          icon: Icon(
+            pauseIcon,
+            size: 40,
+          ),
+          onPressed: () {
+            if (timer!.isActive) {
+              timer?.cancel();
+              setState(() {
+                pauseIcon = Icons.play_arrow;
+              });
+            } else {
+              timer = Timer.periodic(
+                  Duration(milliseconds: (1000 * speedMultiplayer).floor()),
+                  (Timer t) => gameTick());
+              setState(() {
+                pauseIcon = Icons.pause;
+              });
+            }
+          },
+        ),
+      ),
       body: SizedBox.expand(
         child: Swipe(
           onSwipeLeft: () {
@@ -286,25 +362,27 @@ class _GameState extends State<Game> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Expanded(
+                flex: 2,
                 child: Center(
                   child: Text(
-                    style: TextStyle(fontSize: 70),
+                    style: TextStyle(fontSize: 100),
                     points.toString(),
                   ),
                 ),
               ),
               Expanded(
-                flex: 2,
+                flex: 5,
                 child: GridView.count(
                   physics: NeverScrollableScrollPhysics(),
-                  crossAxisCount: 11,
+                  crossAxisCount: gridWidth,
                   children: grid,
                 ),
               ),
               Expanded(
+                flex: 2,
                 child: Icon(
                   signal,
-                  size: 100,
+                  size: 150,
                 ),
               ),
             ],
